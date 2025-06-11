@@ -1,1 +1,0 @@
-# UmutFurkanEKICI.github.io
