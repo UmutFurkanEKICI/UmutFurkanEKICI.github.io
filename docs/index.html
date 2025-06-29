@@ -38,6 +38,24 @@
         button:disabled {
             background: #aaa;
         }
+        .hidden {
+            display: none;
+        }
+        .picker-group {
+            margin-top: 24px;
+        }
+        label {
+            font-size: 15px;
+            color: #333;
+            margin-right: 8px;
+        }
+        input[type="date"], input[type="time"] {
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 15px;
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
@@ -46,6 +64,16 @@
         <p>Bu sayfayı ana ekrana eklediğinizde size bildirim gönderebiliriz.</p>
         <button id="notifyBtn">Bildirim izni iste</button>
         <div id="status" style="margin-top:16px;color:#667eea;"></div>
+        <div id="pickerArea" class="hidden">
+            <div class="picker-group">
+                <label for="dateInput">Tarih:</label>
+                <input type="date" id="dateInput">
+                <label for="timeInput">Saat:</label>
+                <input type="time" id="timeInput">
+            </div>
+            <button id="setNotificationBtn" style="margin-top:18px;">Bildirim Zamanla</button>
+            <div id="pickerStatus" style="margin-top:12px;color:#667eea;"></div>
+        </div>
     </div>
     <script>
         // Service worker kaydı
@@ -60,9 +88,13 @@
             });
         }
 
-        // Bildirim izni isteme
         const notifyBtn = document.getElementById('notifyBtn');
         const statusDiv = document.getElementById('status');
+        const pickerArea = document.getElementById('pickerArea');
+        const setNotificationBtn = document.getElementById('setNotificationBtn');
+        const dateInput = document.getElementById('dateInput');
+        const timeInput = document.getElementById('timeInput');
+        const pickerStatus = document.getElementById('pickerStatus');
 
         // iOS kontrol fonksiyonları
         function isIos() {
@@ -105,6 +137,10 @@
             }
         }
 
+        function showPickerArea() {
+            pickerArea.classList.remove('hidden');
+        }
+
         function askNotificationPermission() {
             // Bildirim API'si destekleniyor mu kontrolü
             if (!('Notification' in window)) {
@@ -131,6 +167,7 @@
                 if (permission === "granted") {
                     statusDiv.textContent = "Bildirim izni verildi!";
                     notifyBtn.disabled = true;
+                    showPickerArea();
                 } else if (permission === "denied") {
                     statusDiv.textContent = "Bildirim izni reddedildi.";
                 } else {
@@ -141,14 +178,73 @@
 
         notifyBtn.addEventListener('click', askNotificationPermission);
 
-        // Eğer izin zaten verilmişse butonu pasifleştir
+        // Eğer izin zaten verilmişse butonu pasifleştir ve picker'ı göster
         if ('Notification' in window && Notification.permission === "granted") {
             notifyBtn.disabled = true;
             statusDiv.textContent = "Bildirim izni zaten verilmiş.";
+            showPickerArea();
         }
 
         // Sayfa yüklendiğinde iOS durumu güncelle
         document.addEventListener('DOMContentLoaded', updateIosStatus);
+
+        // Bildirim zamanlama fonksiyonu
+        setNotificationBtn.addEventListener('click', function() {
+            pickerStatus.textContent = "";
+            const dateVal = dateInput.value;
+            const timeVal = timeInput.value;
+
+            if (!dateVal || !timeVal) {
+                pickerStatus.textContent = "Lütfen tarih ve saat seçiniz.";
+                return;
+            }
+
+            // Seçilen tarih ve saatten bir Date nesnesi oluştur
+            const selectedDateTime = new Date(dateVal + 'T' + timeVal);
+            const now = new Date();
+
+            if (selectedDateTime <= now) {
+                pickerStatus.textContent = "Lütfen ileri bir tarih ve saat seçiniz.";
+                return;
+            }
+
+            const diffMs = selectedDateTime.getTime() - now.getTime();
+
+            // Bildirim planla
+            pickerStatus.textContent = "Bildirim zamanlandı! Seçtiğiniz saatte bildirim gönderilecek.";
+
+            // Eğer sayfa açık kalırsa setTimeout ile bildirim gönder
+            setTimeout(function() {
+                // Bildirim gönder
+                if (Notification.permission === "granted") {
+                    // Eğer service worker destekleniyorsa, onun üzerinden göster
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.getRegistration().then(function(reg) {
+                            if (reg) {
+                                reg.showNotification("Zamanlı Bildirim", {
+                                    body: "Belirlediğiniz tarih ve saatteki bildiriminiz!",
+                                    icon: "/icon-192x192.png",
+                                    badge: "/icon-192x192.png"
+                                });
+                            } else {
+                                // Fallback: doğrudan bildirim
+                                new Notification("Zamanlı Bildirim", {
+                                    body: "Belirlediğiniz tarih ve saatteki bildiriminiz!",
+                                    icon: "/icon-192x192.png",
+                                    badge: "/icon-192x192.png"
+                                });
+                            }
+                        });
+                    } else {
+                        new Notification("Zamanlı Bildirim", {
+                            body: "Belirlediğiniz tarih ve saatteki bildiriminiz!",
+                            icon: "/icon-192x192.png",
+                            badge: "/icon-192x192.png"
+                        });
+                    }
+                }
+            }, diffMs);
+        });
     </script>
 </body>
 </html>
