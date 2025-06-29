@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push Bildirim Uygulaması</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f3f3;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: #fff;
+            padding: 32px 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        button {
+            background: #667eea;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 8px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        button:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+        .hidden {
+            display: none;
+        }
+        .picker-group {
+            margin: 16px 0;
+        }
+        label {
+            font-size: 15px;
+            color: #333;
+            margin-right: 8px;
+        }
+        input[type="date"], input[type="time"], input[type="text"] {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 15px;
+            margin: 4px;
+        }
+        .status {
+            margin: 16px 0;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .notification-form {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin: 12px 0;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .button-group {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Push Bildirim Uygulaması</h2>
+        <p>Bu uygulama ile push bildirimleri alabilir ve test edebilirsiniz.</p>
+        
+        <div id="status" class="status info">Uygulama hazırlanıyor...</div>
+        
+        <div class="button-group">
+            <button id="notifyBtn">Bildirim İzni İste</button>
+            <button id="subscribeBtn" class="hidden">Push Aboneliği</button>
+            <button id="testBtn" class="hidden">Test Bildirimi Gönder</button>
+        </div>
+        
+        <div id="notificationForm" class="notification-form hidden">
+            <h3>Özel Bildirim Gönder</h3>
+            <div class="form-group">
+                <label for="titleInput">Başlık:</label>
+                <input type="text" id="titleInput" placeholder="Bildirim başlığı" value="Test Bildirimi">
+            </div>
+            <div class="form-group">
+                <label for="bodyInput">Mesaj:</label>
+                <input type="text" id="bodyInput" placeholder="Bildirim mesajı" value="Bu bir test bildirimidir!">
+            </div>
+            <div class="button-group">
+                <button id="sendCustomBtn">Bildirim Gönder</button>
+                <button id="scheduleBtn">Zamanlı Bildirim</button>
+            </div>
+        </div>
+        
+        <div id="scheduleForm" class="notification-form hidden">
+            <h3>Zamanlı Bildirim</h3>
+            <div class="picker-group">
+                <label for="dateInput">Tarih:</label>
+                <input type="date" id="dateInput">
+                <label for="timeInput">Saat:</label>
+                <input type="time" id="timeInput">
+            </div>
+            <button id="setNotificationBtn">Bildirim Zamanla</button>
+            <div id="scheduleStatus" class="status"></div>
+        </div>
+    </div>
+
+    <script>
+        // VAPID anahtarı (server.js'den alınacak)
+        let publicVapidKey = '';
+        
+        // DOM elementleri
+        const notifyBtn = document.getElementById('notifyBtn');
+        const subscribeBtn = document.getElementById('subscribeBtn');
+        const testBtn = document.getElementById('testBtn');
+        const sendCustomBtn = document.getElementById('sendCustomBtn');
+        const scheduleBtn = document.getElementById('scheduleBtn');
+        const setNotificationBtn = document.getElementById('setNotificationBtn');
+        const statusDiv = document.getElementById('status');
+        const notificationForm = document.getElementById('notificationForm');
+        const scheduleForm = document.getElementById('scheduleForm');
+        const titleInput = document.getElementById('titleInput');
+        const bodyInput = document.getElementById('bodyInput');
+        const dateInput = document.getElementById('dateInput');
+        const timeInput = document.getElementById('timeInput');
+        const scheduleStatus = document.getElementById('scheduleStatus');
+
+        // VAPID anahtarını sunucudan al
+        async function getVapidKey() {
+            try {
+                const response = await fetch('/vapid-key');
+                const data = await response.json();
+                publicVapidKey = data.publicKey;
+                console.log('VAPID anahtarı alındı:', publicVapidKey);
+            } catch (error) {
+                console.error('VAPID anahtarı alınamadı:', error);
+                showStatus('VAPID anahtarı alınamadı. Sunucunun çalıştığından emin olun.', 'error');
+            }
+        }
+
+        // Status gösterme fonksiyonu
+        function showStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // Base64'ü Uint8Array'e çevirme
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/-/g, '+')
+                .replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        // Service Worker kaydı
+        async function registerServiceWorker() {
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('Service Worker kaydedildi:', registration);
+                    return registration;
+                } catch (error) {
+                    console.error('Service Worker kaydı başarısız:', error);
+                    showStatus('Service Worker kaydı başarısız oldu.', 'error');
+                    return null;
+                }
+            } else {
+                showStatus('Tarayıcınız push bildirimlerini desteklemiyor.', 'error');
+                return null;
+            }
+        }
+
+        // Bildirim izni isteme
+        async function askNotificationPermission() {
+            if (!('Notification' in window)) {
+                showStatus('Tarayıcınız bildirimleri desteklemiyor.', 'error');
+                return false;
+            }
+
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                showStatus('Bildirim izni verildi!', 'success');
+                notifyBtn.disabled = true;
+                subscribeBtn.classList.remove('hidden');
+                return true;
+            } else if (permission === 'denied') {
+                showStatus('Bildirim izni reddedildi.', 'error');
+                return false;
+            } else {
+                showStatus('Bildirim izni verilmedi.', 'error');
+                return false;
+            }
+        }
+
+        // Push aboneliği
+        async function subscribeToPush() {
+            if (!publicVapidKey) {
+                showStatus('VAPID anahtarı henüz alınmadı.', 'error');
+                return;
+            }
+
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (!registration) {
+                showStatus('Service Worker bulunamadı.', 'error');
+                return;
+            }
+
+            try {
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+                });
+
+                // Sunucuya abonelik gönder
+                const response = await fetch('/subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(subscription)
+                });
+
+                if (response.ok) {
+                    showStatus('Push aboneliği başarılı!', 'success');
+                    subscribeBtn.disabled = true;
+                    testBtn.classList.remove('hidden');
+                    notificationForm.classList.remove('hidden');
+                    scheduleForm.classList.remove('hidden');
+                } else {
+                    showStatus('Push aboneliği başarısız.', 'error');
+                }
+            } catch (error) {
+                console.error('Push aboneliği hatası:', error);
+                showStatus('Push aboneliği sırasında hata oluştu.', 'error');
+            }
+        }
+
+        // Test bildirimi gönderme
+        async function sendTestNotification() {
+            try {
+                const response = await fetch('/sendNotification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: 'Test Bildirimi',
+                        body: 'Bu bir test bildirimidir!'
+                    })
+                });
+
+                if (response.ok) {
+                    showStatus('Test bildirimi gönderildi!', 'success');
+                } else {
+                    showStatus('Test bildirimi gönderilemedi.', 'error');
+                }
+            } catch (error) {
+                console.error('Test bildirimi hatası:', error);
+                showStatus('Test bildirimi sırasında hata oluştu.', 'error');
+            }
+        }
+
+        // Özel bildirim gönderme
+        async function sendCustomNotification() {
+            const title = titleInput.value.trim();
+            const body = bodyInput.value.trim();
+
+            if (!title || !body) {
+                showStatus('Başlık ve mesaj alanları boş olamaz.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/sendNotification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title, body })
+                });
+
+                if (response.ok) {
+                    showStatus('Özel bildirim gönderildi!', 'success');
+                } else {
+                    showStatus('Özel bildirim gönderilemedi.', 'error');
+                }
+            } catch (error) {
+                console.error('Özel bildirim hatası:', error);
+                showStatus('Özel bildirim sırasında hata oluştu.', 'error');
+            }
+        }
+
+        // Zamanlı bildirim
+        async function scheduleNotification() {
+            const dateVal = dateInput.value;
+            const timeVal = timeInput.value;
+
+            if (!dateVal || !timeVal) {
+                scheduleStatus.textContent = 'Lütfen tarih ve saat seçiniz.';
+                scheduleStatus.className = 'status error';
+                return;
+            }
+
+            const selectedDateTime = new Date(dateVal + 'T' + timeVal);
+            const now = new Date();
+
+            if (selectedDateTime <= now) {
+                scheduleStatus.textContent = 'Lütfen ileri bir tarih ve saat seçiniz.';
+                scheduleStatus.className = 'status error';
+                return;
+            }
+
+            try {
+                const response = await fetch('/scheduleNotification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: 'Zamanlı Bildirim',
+                        body: 'Belirlediğiniz saatteki bildiriminiz!',
+                        scheduledTime: selectedDateTime.toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    scheduleStatus.textContent = 'Bildirim zamanlandı!';
+                    scheduleStatus.className = 'status success';
+                } else {
+                    scheduleStatus.textContent = 'Bildirim zamanlanamadı.';
+                    scheduleStatus.className = 'status error';
+                }
+            } catch (error) {
+                console.error('Zamanlı bildirim hatası:', error);
+                scheduleStatus.textContent = 'Zamanlı bildirim sırasında hata oluştu.';
+                scheduleStatus.className = 'status error';
+            }
+        }
+
+        // Event listeners
+        notifyBtn.addEventListener('click', askNotificationPermission);
+        subscribeBtn.addEventListener('click', subscribeToPush);
+        testBtn.addEventListener('click', sendTestNotification);
+        sendCustomBtn.addEventListener('click', sendCustomNotification);
+        setNotificationBtn.addEventListener('click', scheduleNotification);
+
+        // Sayfa yüklendiğinde çalışacak kodlar
+        document.addEventListener('DOMContentLoaded', async () => {
+            showStatus('Uygulama yükleniyor...', 'info');
+            
+            // VAPID anahtarını al
+            await getVapidKey();
+            
+            // Service Worker'ı kaydet
+            const registration = await registerServiceWorker();
+            
+            if (registration) {
+                showStatus('Uygulama hazır! Bildirim izni vermek için butona tıklayın.', 'info');
+                
+                // Eğer izin zaten verilmişse
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    notifyBtn.disabled = true;
+                    subscribeBtn.classList.remove('hidden');
+                    showStatus('Bildirim izni zaten verilmiş.', 'success');
+                }
+            }
+        });
+    </script>
+</body>
+</html> 
