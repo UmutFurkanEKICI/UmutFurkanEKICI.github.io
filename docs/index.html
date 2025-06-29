@@ -91,3 +91,82 @@
     </script>
 </body>
 </html>
+<script>
+    // iOS Safari'de Push API ve Notification API desteği kontrolü
+    function isIos() {
+        return /iphone|ipad|ipod/i.test(navigator.userAgent);
+    }
+
+    function isIosStandalone() {
+        return (window.navigator.standalone === true);
+    }
+
+    function isSafari() {
+        return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    }
+
+    // iOS 16.4+ için Push API desteği kontrolü
+    function isIosPushSupported() {
+        // iOS 16.4+ ve Safari'de, serviceWorker ve PushManager destekleniyor
+        return (
+            isIos() &&
+            'serviceWorker' in navigator &&
+            'PushManager' in window &&
+            isSafari()
+        );
+    }
+
+    // Kullanıcıya uygun mesajı göster
+    function updateIosStatus() {
+        if (isIos()) {
+            if (isIosPushSupported()) {
+                statusDiv.textContent = "iOS'ta bildirim almak için lütfen bu sayfayı ana ekrana ekleyin ve oradan açın. Sonra tekrar izin isteyin.";
+            } else {
+                statusDiv.textContent = "iOS cihazınızda bildirim almak için iOS 16.4 veya üzeri bir sürüm ve Safari tarayıcısı gereklidir.";
+            }
+        }
+    }
+
+    // iOS için özel yönlendirme
+    if (isIos()) {
+        // Eğer ana ekrandan açılmamışsa kullanıcıya bilgi ver
+        if (!isIosStandalone()) {
+            statusDiv.textContent = "iOS'ta bildirim almak için bu sayfayı Safari'de paylaş menüsünden 'Ana Ekrana Ekle' ile ekleyin ve oradan açın.";
+            notifyBtn.disabled = true;
+        } else if (!isIosPushSupported()) {
+            statusDiv.textContent = "iOS'ta bildirim almak için iOS 16.4 veya üzeri bir sürüm ve Safari tarayıcısı gereklidir.";
+            notifyBtn.disabled = true;
+        }
+    }
+
+    // askNotificationPermission fonksiyonunu iOS için güncelle
+    function askNotificationPermission() {
+        if (!('Notification' in window)) {
+            statusDiv.textContent = "Tarayıcınız bildirimleri desteklemiyor.";
+            return;
+        }
+        if (isIos()) {
+            if (!isIosStandalone()) {
+                statusDiv.textContent = "iOS'ta bildirim almak için bu sayfayı ana ekrana ekleyin ve oradan açın.";
+                return;
+            }
+            if (!isIosPushSupported()) {
+                statusDiv.textContent = "iOS'ta bildirim almak için iOS 16.4 veya üzeri bir sürüm ve Safari tarayıcısı gereklidir.";
+                return;
+            }
+        }
+        Notification.requestPermission().then(function(permission) {
+            if (permission === "granted") {
+                statusDiv.textContent = "Bildirim izni verildi!";
+                notifyBtn.disabled = true;
+            } else if (permission === "denied") {
+                statusDiv.textContent = "Bildirim izni reddedildi.";
+            } else {
+                statusDiv.textContent = "Bildirim izni verilmedi.";
+            }
+        });
+    }
+
+    // Sayfa yüklendiğinde iOS durumu güncelle
+    document.addEventListener('DOMContentLoaded', updateIosStatus);
+</script>
