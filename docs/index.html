@@ -1,1 +1,838 @@
 
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ödeme Takip Uygulaması</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #4a5568;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+
+        /* Login Form */
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            margin: 50px auto;
+            text-align: center;
+        }
+
+        .login-container h2 {
+            color: #4a5568;
+            margin-bottom: 30px;
+            font-size: 1.8rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Main App */
+        .app-container {
+            display: none;
+        }
+
+        .app-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .logout-btn {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #c53030;
+            transform: translateY(-2px);
+        }
+
+        /* Dashboard */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h3 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-icon {
+            color: #667eea;
+            font-size: 1.5rem;
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        /* Payment Form */
+        .payment-form {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Payment List */
+        .payment-list {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .payment-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .payment-item:last-child {
+            border-bottom: none;
+        }
+
+        .payment-info {
+            flex: 1;
+        }
+
+        .payment-title {
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 5px;
+        }
+
+        .payment-details {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .payment-amount {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .payment-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: #fef5e7;
+            color: #d69e2e;
+        }
+
+        .status-paid {
+            background: #f0fff4;
+            color: #38a169;
+        }
+
+        .status-overdue {
+            background: #fed7d7;
+            color: #e53e3e;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 5px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab:not(.active) {
+            color: #718096;
+        }
+
+        .tab:not(.active):hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .app-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .payment-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                border-radius: 10px;
+                margin-bottom: 5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1><i class="fas fa-credit-card"></i> Ödeme Takip Uygulaması</h1>
+            <p>Kredi kartı ve KHM ödemelerinizi kolayca takip edin</p>
+        </div>
+
+        <!-- Login Container -->
+        <div class="login-container" id="loginContainer">
+            <h2><i class="fas fa-sign-in-alt"></i> Giriş Yap</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Kullanıcı Adı</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Şifre</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn">
+                    <i class="fas fa-sign-in-alt"></i> Giriş Yap
+                </button>
+            </form>
+        </div>
+
+        <!-- Main App -->
+        <div class="app-container" id="appContainer">
+            <!-- App Header -->
+            <div class="app-header">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div>
+                        <h3 id="userName">Kullanıcı</h3>
+                        <p>Hoş geldiniz!</p>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Çıkış
+                </button>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalPayments">0</div>
+                    <div class="stat-label">Toplam Ödeme</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="pendingPayments">0</div>
+                    <div class="stat-label">Bekleyen Ödeme</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="overduePayments">0</div>
+                    <div class="stat-label">Gecikmiş Ödeme</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalAmount">₺0</div>
+                    <div class="stat-label">Toplam Tutar</div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('dashboard')">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </div>
+                <div class="tab" onclick="showTab('addPayment')">
+                    <i class="fas fa-plus"></i> Ödeme Ekle
+                </div>
+                <div class="tab" onclick="showTab('upcoming')">
+                    <i class="fas fa-calendar-alt"></i> Yaklaşan Ödemeler
+                </div>
+                <div class="tab" onclick="showTab('history')">
+                    <i class="fas fa-history"></i> Geçmiş
+                </div>
+            </div>
+
+            <!-- Dashboard Tab -->
+            <div class="tab-content" id="dashboardTab">
+                <div class="dashboard">
+                    <div class="card">
+                        <h3><i class="fas fa-credit-card card-icon"></i> Kredi Kartı Ödemeleri</h3>
+                        <div id="creditCardPayments">
+                            <p>Henüz kredi kartı ödemesi eklenmemiş.</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3><i class="fas fa-home card-icon"></i> KHM Ödemeleri</h3>
+                        <div id="khmPayments">
+                            <p>Henüz KHM ödemesi eklenmemiş.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Payment Tab -->
+            <div class="tab-content" id="addPaymentTab" style="display: none;">
+                <div class="payment-form">
+                    <h3><i class="fas fa-plus card-icon"></i> Yeni Ödeme Ekle</h3>
+                    <form id="paymentForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="paymentType">Ödeme Türü</label>
+                                <select id="paymentType" required>
+                                    <option value="">Seçiniz</option>
+                                    <option value="creditCard">Kredi Kartı</option>
+                                    <option value="khm">KHM</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="paymentTitle">Ödeme Başlığı</label>
+                                <input type="text" id="paymentTitle" placeholder="Örn: Garanti Kredi Kartı" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="paymentAmount">Tutar (₺)</label>
+                                <input type="number" id="paymentAmount" step="0.01" placeholder="0.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="paymentDate">Son Ödeme Tarihi</label>
+                                <input type="date" id="paymentDate" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="paymentDescription">Açıklama (Opsiyonel)</label>
+                                <input type="text" id="paymentDescription" placeholder="Ödeme açıklaması">
+                            </div>
+                            <div class="form-group">
+                                <label for="paymentStatus">Durum</label>
+                                <select id="paymentStatus" required>
+                                    <option value="pending">Bekliyor</option>
+                                    <option value="paid">Ödendi</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn">
+                            <i class="fas fa-save"></i> Ödeme Ekle
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Upcoming Payments Tab -->
+            <div class="tab-content" id="upcomingTab" style="display: none;">
+                <div class="payment-list">
+                    <h3><i class="fas fa-calendar-alt card-icon"></i> Yaklaşan Ödemeler</h3>
+                    <div id="upcomingPayments">
+                        <p>Yaklaşan ödeme bulunmuyor.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Tab -->
+            <div class="tab-content" id="historyTab" style="display: none;">
+                <div class="payment-list">
+                    <h3><i class="fas fa-history card-icon"></i> Ödeme Geçmişi</h3>
+                    <div id="paymentHistory">
+                        <p>Henüz ödeme geçmişi bulunmuyor.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Local Storage'dan verileri yükle
+        let payments = JSON.parse(localStorage.getItem('payments')) || [];
+        let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+
+        // Sayfa yüklendiğinde kontrol et
+        document.addEventListener('DOMContentLoaded', function() {
+            if (currentUser) {
+                showApp();
+            } else {
+                showLogin();
+            }
+        });
+
+        // Login form submit
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Basit doğrulama (gerçek uygulamada API kullanılır)
+            if (username && password) {
+                currentUser = {
+                    username: username,
+                    avatar: username.charAt(0).toUpperCase()
+                };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                showApp();
+            } else {
+                alert('Lütfen kullanıcı adı ve şifre giriniz!');
+            }
+        });
+
+        // Payment form submit
+        document.getElementById('paymentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const payment = {
+                id: Date.now(),
+                type: document.getElementById('paymentType').value,
+                title: document.getElementById('paymentTitle').value,
+                amount: parseFloat(document.getElementById('paymentAmount').value),
+                date: document.getElementById('paymentDate').value,
+                description: document.getElementById('paymentDescription').value,
+                status: document.getElementById('paymentStatus').value,
+                createdAt: new Date().toISOString()
+            };
+
+            payments.push(payment);
+            localStorage.setItem('payments', JSON.stringify(payments));
+            
+            updateDashboard();
+            document.getElementById('paymentForm').reset();
+            alert('Ödeme başarıyla eklendi!');
+        });
+
+        function showLogin() {
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('appContainer').style.display = 'none';
+        }
+
+        function showApp() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            
+            // Kullanıcı bilgilerini güncelle
+            document.getElementById('userName').textContent = currentUser.username;
+            document.getElementById('userAvatar').textContent = currentUser.avatar;
+            
+            updateDashboard();
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            showLogin();
+        }
+
+        function showTab(tabName) {
+            // Tüm tabları gizle
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            
+            // Tüm tab butonlarından active class'ını kaldır
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Seçilen tabı göster
+            document.getElementById(tabName + 'Tab').style.display = 'block';
+            
+            // Seçilen tab butonuna active class'ı ekle
+            event.target.classList.add('active');
+            
+            // Tab içeriğini güncelle
+            if (tabName === 'upcoming') {
+                updateUpcomingPayments();
+            } else if (tabName === 'history') {
+                updatePaymentHistory();
+            }
+        }
+
+        function updateDashboard() {
+            const totalPayments = payments.length;
+            const pendingPayments = payments.filter(p => p.status === 'pending').length;
+            const overduePayments = payments.filter(p => {
+                if (p.status === 'pending') {
+                    const dueDate = new Date(p.date);
+                    const today = new Date();
+                    return dueDate < today;
+                }
+                return false;
+            }).length;
+            const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+
+            document.getElementById('totalPayments').textContent = totalPayments;
+            document.getElementById('pendingPayments').textContent = pendingPayments;
+            document.getElementById('overduePayments').textContent = overduePayments;
+            document.getElementById('totalAmount').textContent = '₺' + totalAmount.toFixed(2);
+
+            // Kredi kartı ödemeleri
+            const creditCardPayments = payments.filter(p => p.type === 'creditCard');
+            const khmPayments = payments.filter(p => p.type === 'khm');
+
+            updatePaymentSection('creditCardPayments', creditCardPayments);
+            updatePaymentSection('khmPayments', khmPayments);
+        }
+
+        function updatePaymentSection(elementId, paymentList) {
+            const element = document.getElementById(elementId);
+            if (paymentList.length === 0) {
+                element.innerHTML = '<p>Henüz ödeme eklenmemiş.</p>';
+                return;
+            }
+
+            const html = paymentList.map(payment => `
+                <div class="payment-item">
+                    <div class="payment-info">
+                        <div class="payment-title">${payment.title}</div>
+                        <div class="payment-details">
+                            ${payment.description ? payment.description + ' • ' : ''}
+                            Son Ödeme: ${new Date(payment.date).toLocaleDateString('tr-TR')}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="payment-amount">₺${payment.amount.toFixed(2)}</div>
+                        <div class="payment-status status-${payment.status}">
+                            ${getStatusText(payment.status)}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            element.innerHTML = html;
+        }
+
+        function updateUpcomingPayments() {
+            const upcoming = payments.filter(p => {
+                if (p.status === 'pending') {
+                    const dueDate = new Date(p.date);
+                    const today = new Date();
+                    const diffTime = dueDate - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    return diffDays >= 0 && diffDays <= 30; // 30 gün içinde
+                }
+                return false;
+            }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            const element = document.getElementById('upcomingPayments');
+            if (upcoming.length === 0) {
+                element.innerHTML = '<p>Yaklaşan ödeme bulunmuyor.</p>';
+                return;
+            }
+
+            const html = upcoming.map(payment => {
+                const dueDate = new Date(payment.date);
+                const today = new Date();
+                const diffTime = dueDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                return `
+                    <div class="payment-item">
+                        <div class="payment-info">
+                            <div class="payment-title">${payment.title}</div>
+                            <div class="payment-details">
+                                ${payment.description ? payment.description + ' • ' : ''}
+                                Son Ödeme: ${dueDate.toLocaleDateString('tr-TR')}
+                                ${diffDays === 0 ? '(Bugün)' : diffDays < 0 ? '(Gecikmiş)' : `(${diffDays} gün kaldı)`}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="payment-amount">₺${payment.amount.toFixed(2)}</div>
+                            <div class="payment-status status-${diffDays < 0 ? 'overdue' : 'pending'}">
+                                ${diffDays < 0 ? 'Gecikmiş' : diffDays === 0 ? 'Bugün' : `${diffDays} gün`}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            element.innerHTML = html;
+        }
+
+        function updatePaymentHistory() {
+            const history = payments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            const element = document.getElementById('paymentHistory');
+            if (history.length === 0) {
+                element.innerHTML = '<p>Henüz ödeme geçmişi bulunmuyor.</p>';
+                return;
+            }
+
+            const html = history.map(payment => `
+                <div class="payment-item">
+                    <div class="payment-info">
+                        <div class="payment-title">${payment.title}</div>
+                        <div class="payment-details">
+                            ${payment.description ? payment.description + ' • ' : ''}
+                            Son Ödeme: ${new Date(payment.date).toLocaleDateString('tr-TR')} •
+                            Eklenme: ${new Date(payment.createdAt).toLocaleDateString('tr-TR')}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="payment-amount">₺${payment.amount.toFixed(2)}</div>
+                        <div class="payment-status status-${payment.status}">
+                            ${getStatusText(payment.status)}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            element.innerHTML = html;
+        }
+
+        function getStatusText(status) {
+            switch(status) {
+                case 'pending': return 'Bekliyor';
+                case 'paid': return 'Ödendi';
+                case 'overdue': return 'Gecikmiş';
+                default: return status;
+            }
+        }
+
+        // Select elementleri için stil
+        document.querySelectorAll('select').forEach(select => {
+            select.style.cssText = `
+                width: 100%;
+                padding: 12px 16px;
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                font-size: 16px;
+                transition: all 0.3s ease;
+                background: white;
+            `;
+            
+            select.addEventListener('focus', function() {
+                this.style.borderColor = '#667eea';
+                this.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+            });
+            
+            select.addEventListener('blur', function() {
+                this.style.borderColor = '#e2e8f0';
+                this.style.boxShadow = 'none';
+            });
+        });
+    </script>
+</body>
+</html>
